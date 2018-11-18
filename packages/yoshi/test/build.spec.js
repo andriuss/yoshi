@@ -131,7 +131,7 @@ describe('Aggregator: Build', () => {
     });
 
     it('should build w/o errors', () => {
-      expect(resp.code).to.equal(1);
+      expect(resp.code).to.equal(0);
     });
 
     it('should work when run with node', async () => {
