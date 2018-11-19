@@ -64,6 +64,7 @@ try {
     const options = {
       stdio: 'inherit',
       env: { ...process.env, TEST_DIRECTORY: testDirectory },
+      cwd: templateDirectory,
     };
 
     // Find all Jest configs
