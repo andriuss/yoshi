@@ -267,6 +267,66 @@ describe('Aggregator: Test', () => {
 
       expect(testResponse.code).to.equal(0);
     }).timeout(30000);
+
+    it('should support local cdn with ssl when running e2e tests in a CI build', () => {
+      const project = test.setup({
+        'package.json': fx.packageJson(
+          {
+            servers: {
+              cdn: {
+                ssl: true,
+              },
+            },
+          },
+          {},
+          {
+            babel: {
+              presets: [require.resolve('babel-preset-yoshi')],
+            },
+          },
+        ),
+        'pom.xml': fx.pom(),
+        'protractor.conf.js': fx.protractorConf({
+          cdnPort: 3200,
+          protocol: 'https',
+        }),
+        'src/client.js': `
+            document.body.innerHTML = "Before";
+            (async function () {
+              await import("./dynamic");
+            })();
+          `,
+        'src/dynamic.js': `
+            document.body.innerHTML = "<h1>Dynamic</h1>";
+          `,
+        'test/e2e/some.e2e.js': `
+            it('should succeed', async () => {
+              browser.ignoreSynchronization = true;
+              browser.get("http://localhost:1337");
+              const until = protractor.ExpectedConditions;
+              browser.wait(until.presenceOf(\$('h1')), 4000, 'Element taking too long to appear in the DOM');
+              expect(element(by.css("body")).getText()).toEqual("Dynamic");
+            });
+          `,
+      });
+
+      const buildResponse = project.execute('build', [], {
+        ...insideTeamCity,
+        ...teamCityArtifactVersion,
+      });
+
+      expect(buildResponse.code).to.equal(0);
+      expect(test.content('./dist/statics/app.bundle.min.js')).to.contain(
+        staticsDomain,
+      );
+
+      const testResponse = project.verbose().execute('test', ['--protractor'], {
+        ...insideTeamCity,
+        ...teamCityArtifactVersion,
+      });
+
+      expect(testResponse.code).to.equal(0);
+    }).timeout(30000);
   });
 
   describe('--jest', () => {
